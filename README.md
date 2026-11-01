@@ -6,6 +6,8 @@ Code shared by the OmnifexIT services, so a fix lands everywhere at once instead
 |---|---|
 | Encrypted queue jobs between services (pairwise keys, forged keys rejected) | `Omnifexit\OmniCore\Queue\EncryptsWithQueueKey` |
 | Sentinel driver that trusts Tailscale's 100.64.0.0/10 range (registered automatically when Horizon/Sentinel is installed) | `Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver` |
+| The jobs services send each other, one class for sender and receiver | `Omnifexit\OmniCore\Jobs\{Mail,Desk,Ai,Message}\*` (base: `Jobs\ServiceJob`) |
+| Writing a job's progress for the sender to poll | `Omnifexit\OmniCore\Queue\DispatchStatus::mark($job->statusKey(), ...)` |
 
 This repo is public on purpose: it holds no secrets. The queue keys live in each service's `.env`.
 
@@ -31,7 +33,40 @@ Then:
 - Remove the `Sentinel::extend(...)` line from its `AppServiceProvider`. The package's service provider registers the
   driver itself.
 
-## Using the job encryption
+## Jobs between services
+
+Every job one service sends another lives here, in `src/Jobs/<receiver>/`. It extends `ServiceJob` and declares its
+properties and `senderKeys()`: which service may send it, and with which pairwise key. The class is identical on
+both sides, so sender and receiver can't drift apart.
+
+- **Every service** publishes `config/omni-core.php` and sets `service` (e.g. `omnidesk`), so a job knows which key
+  to encrypt with.
+- **The receiving service** registers a handler for each job it receives, in `handlers`
+  (`SendWelcomeEmailJob::class => App\JobHandlers\SendWelcomeEmail::class`). The handler's
+  `handle(SendWelcomeEmailJob $job)` does the work. Dependencies are injected, and `$job->attempts()` and
+  `$job->fail()` work as usual.
+- **A sending service** just dispatches the job, with no handler.
+
+### Adding a job
+
+1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()` and, if the sender polls for the result, a
+   `statusKey()`. Add a test.
+2. Release a minor version.
+3. Update the receiver first: register the handler, deploy.
+4. Then update the sender: dispatch the job.
+
+### Changing a job's properties
+
+Senders and receivers update at different moments, so a change must work for messages queued by the old version:
+- **Adding a property:** give it a default.
+- **Removing or renaming one:** first make the receiver handle both, then change the sender, then clean up.
+
+### Moving an existing job here
+
+The class name is part of the queued message. Keep `class_alias(New::class, 'App\Jobs\Old')` in the receiver
+(`AppServiceProvider::register()`) until every sender dispatches the new class and the queues have drained.
+
+## Using the job encryption directly
 
 ```php
 class SendInvoiceEmailJob implements ShouldQueue
