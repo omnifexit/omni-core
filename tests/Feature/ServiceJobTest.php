@@ -109,3 +109,35 @@ it('writes the dispatch status hash with an expiry', function () {
 
     DispatchStatus::mark('ai:dispatch:d-1', 'completed', extra: ['response' => 'ok'], ttl: 600);
 });
+
+class FailureCountingHandler
+{
+    public static int $failures = 0;
+
+    public static ?Throwable $last = null;
+
+    public function handle(SendWelcomeEmailJob $job): void {}
+
+    public function failed(SendWelcomeEmailJob $job, ?Throwable $exception): void
+    {
+        self::$failures++;
+        self::$last = $exception;
+    }
+}
+
+it('passes the final failure on to the handler\'s failed() method', function () {
+    config()->set('omni-core.handlers', [SendWelcomeEmailJob::class => FailureCountingHandler::class]);
+
+    welcomeJob()->failed($exception = new RuntimeException('SMTP down'));
+
+    expect(FailureCountingHandler::$failures)->toBe(1)
+        ->and(FailureCountingHandler::$last)->toBe($exception);
+});
+
+it('ignores a final failure when the handler has no failed() method', function () {
+    config()->set('omni-core.handlers', [SendWelcomeEmailJob::class => RecordingWelcomeHandler::class]);
+
+    welcomeJob()->failed(new RuntimeException('x'));
+
+    expect(true)->toBeTrue();
+});

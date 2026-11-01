@@ -9,6 +9,7 @@ use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use LogicException;
 use Omnifexit\OmniCore\Queue\EncryptsWithQueueKey;
+use Throwable;
 
 /**
  * A job sent from one service to another. The same class is used on both sides, so sender and receiver can't drift
@@ -57,15 +58,34 @@ abstract class ServiceJob implements ShouldQueue
 
     public function handle(Container $container): void
     {
+        $container->call([$container->make($this->handlerClass()), 'handle'], ['job' => $this]);
+    }
+
+    /**
+     * Called by Laravel once, after the last attempt failed. Passed on to the handler's failed($job, $exception) when
+     * it has one, e.g. to count the failure once instead of on every retry.
+     */
+    public function failed(?Throwable $exception): void
+    {
+        $handler = rescue(fn () => app($this->handlerClass()), report: false);
+
+        if ($handler !== null && method_exists($handler, 'failed')) {
+            app()->call([$handler, 'failed'], ['job' => $this, 'exception' => $exception]);
+        }
+    }
+
+    /**
+     * @return class-string
+     */
+    private function handlerClass(): string
+    {
         $handlers = config('omni-core.handlers', []);
 
         // A service may extend a shared job (e.g. to keep an old class name while it moves here); the handler is
         // registered for the shared class.
-        $handler = collect([static::class, ...array_values(class_parents($this))])
+        return collect([static::class, ...array_values(class_parents($this))])
             ->map(fn (string $class) => $handlers[$class] ?? null)
             ->first(fn (?string $handler) => $handler !== null)
             ?? throw new LogicException(static::class.' has no handler in this service (config/omni-core.php, \'handlers\'). Is it on the right queue?');
-
-        $container->call([$container->make($handler), 'handle'], ['job' => $this]);
     }
 }

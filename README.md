@@ -46,7 +46,8 @@ both sides, so sender and receiver can't drift apart.
 - **The receiving service** registers a handler for each job it receives, in `handlers`
   (`SendWelcomeEmailJob::class => App\JobHandlers\SendWelcomeEmail::class`). The handler's
   `handle(SendWelcomeEmailJob $job)` does the work. Dependencies are injected, and `$job->attempts()` and
-  `$job->fail()` work as usual.
+  `$job->fail()` work as usual. An optional `failed(SendWelcomeEmailJob $job, ?Throwable $exception)` runs once
+  after the last attempt failed.
 - **A sending service** just dispatches the job, with no handler. Each job knows its queue name:
   `->onQueue(SendWelcomeEmailJob::queueName())`. For the sync jobs the app matters: `SyncRoleChangeJob::queueName('omnidesk')`.
 - **Every service** has a contract test that runs `ServiceContract::problems()`. It checks that every handler exists
