@@ -5,7 +5,8 @@ namespace Omnifexit\OmniCore\Jobs\Mail;
 use Omnifexit\OmniCore\Jobs\ServiceJob;
 
 /**
- * Counts sent/failed/received mail in OmniMail's Redis stats. OmniAuth sends it; OmniMail runs it inline with dispatchSync.
+ * Counts sent/failed/received mail in OmniMail's Redis stats. OmniAuth sends it; OmniMail runs it with dispatchSync,
+ * which still serializes the job, so OmniMail encrypts it with the same key.
  */
 class UpdateMailAnalytics extends ServiceJob
 {
@@ -18,6 +19,9 @@ class UpdateMailAnalytics extends ServiceJob
 
     public static function senderKeys(): array
     {
-        return ['omniauth' => 'omniauth-omnimail'];
+        return [
+            'omniauth' => 'omniauth-omnimail',
+            'omnimail' => 'omniauth-omnimail',
+        ];
     }
 }
