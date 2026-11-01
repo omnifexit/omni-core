@@ -7,6 +7,7 @@ Code shared by the OmnifexIT services, so a fix lands everywhere at once instead
 | Encrypted queue jobs between services (pairwise keys, forged keys rejected) | `Omnifexit\OmniCore\Queue\EncryptsWithQueueKey` |
 | Sentinel driver that trusts Tailscale's 100.64.0.0/10 range (registered automatically when Horizon/Sentinel is installed) | `Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver` |
 | The jobs services send each other, one class for sender and receiver | `Omnifexit\OmniCore\Jobs\{Mail,Desk,Ai,Message}\*` (base: `Jobs\ServiceJob`) |
+| User and role sync between OmniAuth and its client apps | `Omnifexit\OmniCore\Jobs\Auth\*` (base: `ClientAppJob`) |
 | Writing a job's progress for the sender to poll | `Omnifexit\OmniCore\Queue\DispatchStatus::mark($job->statusKey(), ...)` |
 
 This repo is public on purpose: it holds no secrets. The queue keys live in each service's `.env`.
@@ -47,6 +48,14 @@ both sides, so sender and receiver can't drift apart.
   `$job->fail()` work as usual.
 - **A sending service** just dispatches the job, with no handler.
 
+### Jobs between OmniAuth and its client apps
+
+`Jobs\Auth\*` extend `ClientAppJob` instead of declaring `senderKeys()`:
+- **Keys:** an app always uses its own key, `omniauth-{service}`. OmniAuth uses the key of the client the job is
+  about (`$clientId`), through its `ClientQueueKeys` binding.
+- **Safety check:** OmniAuth discards a job about one client that arrived on another client's key.
+- **Direction:** `sentByOmniAuth()` / `sentByClientApps()` say who may send each job.
+
 ### Adding a job
 
 1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()` and, if the sender polls for the result, a
@@ -63,8 +72,12 @@ Senders and receivers update at different moments, so a change must work for mes
 
 ### Moving an existing job here
 
-The class name is part of the queued message. Keep `class_alias(New::class, 'App\Jobs\Old')` in the receiver
-(`AppServiceProvider::register()`) until every sender dispatches the new class and the queues have drained.
+The class name is part of the queued message, so old and new services must understand each other during the move.
+- **One-way job** (one service sends, another receives): keep `class_alias(New::class, 'App\Jobs\Old')` in the
+  receiver until every sender dispatches the new class.
+- **A service both sends and receives it:** replace its old class with an empty `class Old extends New {}`. It keeps
+  sending under the old name while it already accepts the new one; the handler registered for `New` handles both.
+  Switch to `New` once every service has that subclass, then delete it.
 
 ## Using the job encryption directly
 

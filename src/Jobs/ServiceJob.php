@@ -49,9 +49,14 @@ abstract class ServiceJob implements ShouldQueue
 
     public function handle(Container $container): void
     {
-        $handler = config('omni-core.handlers', [])[static::class] ?? throw new LogicException(
-            static::class.' has no handler in this service (config/omni-core.php, \'handlers\'). Is it on the right queue?'
-        );
+        $handlers = config('omni-core.handlers', []);
+
+        // A service may extend a shared job (e.g. to keep an old class name while it moves here); the handler is
+        // registered for the shared class.
+        $handler = collect([static::class, ...array_values(class_parents($this))])
+            ->map(fn (string $class) => $handlers[$class] ?? null)
+            ->first(fn (?string $handler) => $handler !== null)
+            ?? throw new LogicException(static::class.' has no handler in this service (config/omni-core.php, \'handlers\'). Is it on the right queue?');
 
         $container->call([$container->make($handler), 'handle'], ['job' => $this]);
     }

@@ -15,6 +15,16 @@ use ReflectionObject;
 trait EncryptsWithQueueKey
 {
     /**
+     * The key name this job arrived with; null when it was created in this process. Not part of the payload.
+     */
+    private ?string $receivedWithKey = null;
+
+    public function receivedEncryptionKey(): ?string
+    {
+        return $this->receivedWithKey;
+    }
+
+    /**
      * @return array{_enc: string, _k: string}
      *
      * @throws Exception
@@ -32,7 +42,7 @@ trait EncryptsWithQueueKey
         $properties = [];
 
         foreach ($reflection->getProperties() as $property) {
-            if ($property->isStatic() || $property->isVirtual()) {
+            if ($property->isStatic() || $property->isVirtual() || $property->getName() === 'receivedWithKey') {
                 continue;
             }
 
@@ -96,5 +106,7 @@ trait EncryptsWithQueueKey
         foreach ($properties as $k => $v) {
             $this->$k = $v;
         }
+
+        $this->receivedWithKey = $data['_k'];
     }
 }
