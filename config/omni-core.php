@@ -18,4 +18,21 @@ return [
 
     'handlers' => [],
 
+    /*
+    | OmniAuth SSO settings for client apps (OmniDesk, OmniSales, ...).
+    */
+
+    'sso' => [
+        // Prefix for the launcher and user-revocation cache keys (e.g. desk:launcher:..., desk:revoke_user:...).
+        // Defaults to the service name without a leading "omni" (omnidesk -> desk).
+        'cache_prefix' => null,
+
+        // Extra User columns SyncUsers copies from the UserData payload (e.g. ['discord_id']).
+        'user_fields' => [],
+
+        // All permission names this app uses (e.g. App\Support\Permissions::ALL). When non-empty,
+        // SsoController dispatches SyncPermissionsJob on login so OmniAuth learns new permissions.
+        'permissions' => [],
+    ],
+
 ];

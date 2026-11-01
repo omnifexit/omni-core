@@ -8,6 +8,7 @@ Code shared by the OmnifexIT services, so a fix lands everywhere at once instead
 | Sentinel driver that trusts Tailscale's 100.64.0.0/10 range (registered automatically when Horizon/Sentinel is installed) | `Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver` |
 | The jobs services send each other, one class for sender and receiver | `Omnifexit\OmniCore\Jobs\{Mail,Desk,Ai,Message}\*` (base: `Jobs\ServiceJob`) |
 | User and role sync between OmniAuth and its client apps | `Omnifexit\OmniCore\Jobs\Auth\*` (base: `ClientAppJob`) |
+| OmniAuth SSO login, app launcher, user-revocation middleware, and sync handlers for client apps | `Omnifexit\OmniCore\Sso\*` |
 | Checking a service is wired up correctly (handlers, Horizon queues, no local copies) | `Omnifexit\OmniCore\Testing\ServiceContract::problems()` |
 | Writing a job's progress for the sender to poll | `Omnifexit\OmniCore\Queue\DispatchStatus::mark($job->statusKey(), ...)` |
 

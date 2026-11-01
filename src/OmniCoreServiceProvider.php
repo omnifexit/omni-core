@@ -2,9 +2,14 @@
 
 namespace Omnifexit\OmniCore;
 
+use Illuminate\Auth\Events\Login;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sentinel\Sentinel;
+use Laravel\Socialite\Facades\Socialite;
 use Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver;
+use Omnifexit\OmniCore\Sso\OmniAuthProvider;
+use Omnifexit\OmniCore\Sso\RevokedUsers;
 
 class OmniCoreServiceProvider extends ServiceProvider
 {
@@ -23,5 +28,26 @@ class OmniCoreServiceProvider extends ServiceProvider
         if (class_exists(Sentinel::class)) {
             Sentinel::extend('laravel', fn ($container) => new TailscaleAwareSentinelDriver(fn () => $container));
         }
+
+        if (class_exists(Socialite::class)) {
+            Socialite::extend('omniauth', function ($app) {
+                $config = $app['config']['services.omniauth'] ?? [];
+
+                return new OmniAuthProvider(
+                    $app['request'],
+                    $config['client_id'] ?? null,
+                    $config['client_secret'] ?? null,
+                    $config['redirect'] ?? null,
+                );
+            });
+        }
+
+        Event::listen(Login::class, function (Login $event): void {
+            $id = $event->user->getAuthIdentifier();
+
+            if ($id !== null) {
+                RevokedUsers::clear($id);
+            }
+        });
     }
 }

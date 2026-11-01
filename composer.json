@@ -1,6 +1,6 @@
 {
     "name": "omnifexit/omni-core",
-    "description": "Code shared by the OmnifexIT services: encrypted queue jobs between services and the Tailscale-aware Sentinel driver.",
+    "description": "Code shared by the OmnifexIT services: encrypted queue jobs between services, OmniAuth SSO and the Tailscale-aware Sentinel driver.",
     "type": "library",
     "license": "proprietary",
     "require": {
@@ -12,11 +12,19 @@
     "require-dev": {
         "laravel/horizon": "^5.45",
         "laravel/pint": "^1.24",
+        "laravel/sanctum": "^4.3",
+        "laravel/socialite": "^5.24",
         "orchestra/testbench": "^10.0|^11.0",
-        "pestphp/pest": "^3.0|^4.0"
+        "pestphp/pest": "^3.0|^4.0",
+        "spatie/laravel-data": "^4.0",
+        "spatie/laravel-permission": "^8.0"
     },
     "suggest": {
-        "laravel/sentinel": "Required for the Tailscale-aware Sentinel driver (comes with laravel/horizon)."
+        "laravel/sanctum": "Required for the SSO user-revocation middleware (EnsureUserNotRevoked).",
+        "laravel/sentinel": "Required for the Tailscale-aware Sentinel driver (comes with laravel/horizon).",
+        "laravel/socialite": "Required for OmniAuth SSO login (OmniAuthProvider, SsoController).",
+        "spatie/laravel-data": "Required for the SyncUsers job handler.",
+        "spatie/laravel-permission": "Required for SSO role and permission sync (SsoController, SyncUsers, SyncRoleChange)."
     },
     "autoload": {
         "psr-4": {
