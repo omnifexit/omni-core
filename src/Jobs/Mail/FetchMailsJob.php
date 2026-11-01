@@ -18,7 +18,7 @@ class FetchMailsJob extends ServiceJob
         $this->dispatchId = $dispatchId ?? (string) Str::uuid();
     }
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'mail-fetch-queue';
     }

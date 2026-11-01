@@ -29,10 +29,11 @@ abstract class ServiceJob implements ShouldQueue
 
     /**
      * The queue this job travels on to $receiver (a service name, e.g. omnimail). Senders dispatch with
-     * ->onQueue(TheJob::queue(...)) and the receiving service's Horizon must listen on it; ServiceContract checks
-     * the latter. Most jobs have one receiver, so the argument only matters for jobs that go to several.
+     * ->onQueue(TheJob::queueName(...)) and the receiving service's Horizon must listen on it; ServiceContract checks
+     * the latter. Most jobs have one receiver, so the argument only matters for jobs that go to several. (Not named
+     * queue(): Laravel calls a job's queue() method to push it.)
      */
-    abstract public static function queue(?string $receiver = null): string;
+    abstract public static function queueName(?string $receiver = null): string;
 
     public function getEncryptionKey(): string
     {

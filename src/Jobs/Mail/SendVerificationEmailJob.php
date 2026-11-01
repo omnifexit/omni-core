@@ -16,7 +16,7 @@ class SendVerificationEmailJob extends ServiceJob
         public readonly string $dispatchId,
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'verification-queue';
     }

@@ -24,7 +24,7 @@ class SyncRoleChangeJob extends ClientAppJob
     /**
      * Each app's own sync queue ($receiver is the app, e.g. omnidesk).
      */
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return "{$receiver}-sync-queue";
     }

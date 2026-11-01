@@ -13,7 +13,7 @@ class SaveEmailsJob extends ServiceJob
         public readonly array $emails,
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'save-emails-queue';
     }

@@ -29,7 +29,7 @@ class SyncPermissionsJob extends ClientAppJob implements ShouldBeUnique
         public readonly array $roleAssignments = [],
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'omni-sync-permissions';
     }

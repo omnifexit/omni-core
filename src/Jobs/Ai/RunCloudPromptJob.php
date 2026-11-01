@@ -20,7 +20,7 @@ class RunCloudPromptJob extends ServiceJob
         public readonly string $callerId,
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'ai-prompt-cloud-queue';
     }

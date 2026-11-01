@@ -16,7 +16,7 @@ class SendDiscordMessageJob extends ServiceJob
         public readonly ?array $embed = null,
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'discord-queue';
     }

@@ -83,7 +83,7 @@ class ServiceContract
                 continue;
             }
 
-            $queue = $job::queue($service);
+            $queue = $job::queueName($service);
 
             if (! in_array($queue, $listened, true)) {
                 $problems[] = "{$job} arrives on the [{$queue}] queue, but no Horizon supervisor in config/horizon.php listens on it, so it would never run.";

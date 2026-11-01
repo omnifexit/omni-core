@@ -24,7 +24,7 @@ class SyncUsersJob extends ClientAppJob
     /**
      * A request goes to OmniAuth's shared request queue; the answer to the app's own response queue.
      */
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return $receiver === null || $receiver === 'omniauth' ? 'omni-sync-request' : "{$receiver}-sync-response";
     }

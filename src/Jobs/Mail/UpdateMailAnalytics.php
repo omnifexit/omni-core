@@ -17,7 +17,7 @@ class UpdateMailAnalytics extends ServiceJob
         $this->onQueue('analytics-mail-queue');
     }
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'analytics-mail-queue';
     }

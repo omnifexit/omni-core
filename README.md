@@ -47,8 +47,8 @@ both sides, so sender and receiver can't drift apart.
   (`SendWelcomeEmailJob::class => App\JobHandlers\SendWelcomeEmail::class`). The handler's
   `handle(SendWelcomeEmailJob $job)` does the work. Dependencies are injected, and `$job->attempts()` and
   `$job->fail()` work as usual.
-- **A sending service** just dispatches the job, with no handler. Each job knows its queue:
-  `->onQueue(SendWelcomeEmailJob::queue())`. For the sync jobs the app matters: `SyncRoleChangeJob::queue('omnidesk')`.
+- **A sending service** just dispatches the job, with no handler. Each job knows its queue name:
+  `->onQueue(SendWelcomeEmailJob::queueName())`. For the sync jobs the app matters: `SyncRoleChangeJob::queueName('omnidesk')`.
 - **Every service** has a contract test that runs `ServiceContract::problems()`. It checks that every handler exists
   and accepts its job, that Horizon listens on each handled job's queue, and that `app/Jobs` holds no copy of a
   shared job:
@@ -69,7 +69,7 @@ both sides, so sender and receiver can't drift apart.
 
 ### Adding a job
 
-1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()`, its `queue()` and, if the sender polls for
+1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()`, its `queueName()` and, if the sender polls for
    the result, a `statusKey()`. Add a test.
 2. Release a minor version.
 3. Update the receiver first: register the handler, deploy.

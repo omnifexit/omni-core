@@ -17,7 +17,7 @@ class RunLocalPromptJob extends ServiceJob
         public readonly ?int $timeout = null,
     ) {}
 
-    public static function queue(?string $receiver = null): string
+    public static function queueName(?string $receiver = null): string
     {
         return 'ai-prompt-local-queue';
     }

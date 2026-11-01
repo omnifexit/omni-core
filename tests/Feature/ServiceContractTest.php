@@ -63,8 +63,8 @@ it('also counts queues of environment-specific supervisors', function () {
 });
 
 it('knows the per-app queues of the sync jobs', function () {
-    expect(SyncUsersJob::queue('omniauth'))->toBe('omni-sync-request')
-        ->and(SyncUsersJob::queue('omnidesk'))->toBe('omnidesk-sync-response')
-        ->and(SyncRoleChangeJob::queue('omnisales'))->toBe('omnisales-sync-queue')
-        ->and(SendWelcomeEmailJob::queue())->toBe('verification-queue');
+    expect(SyncUsersJob::queueName('omniauth'))->toBe('omni-sync-request')
+        ->and(SyncUsersJob::queueName('omnidesk'))->toBe('omnidesk-sync-response')
+        ->and(SyncRoleChangeJob::queueName('omnisales'))->toBe('omnisales-sync-queue')
+        ->and(SendWelcomeEmailJob::queueName())->toBe('verification-queue');
 });
