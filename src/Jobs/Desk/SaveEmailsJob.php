@@ -13,6 +13,11 @@ class SaveEmailsJob extends ServiceJob
         public readonly array $emails,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'save-emails-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omnimail' => 'omnidesk-omnimail'];

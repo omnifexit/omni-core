@@ -19,6 +19,11 @@ class ReplyToEmailJob extends ServiceJob
         public readonly ?string $userName = null,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'mail-fetch-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omnidesk' => 'omnidesk-omnimail'];

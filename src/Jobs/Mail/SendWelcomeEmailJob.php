@@ -16,6 +16,11 @@ class SendWelcomeEmailJob extends ServiceJob
         public readonly string $dispatchId,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'verification-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omniauth' => 'omniauth-omnimail'];

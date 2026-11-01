@@ -20,6 +20,11 @@ class RunCloudPromptJob extends ServiceJob
         public readonly string $callerId,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'ai-prompt-cloud-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omnidesk' => 'omnidesk-omniai'];

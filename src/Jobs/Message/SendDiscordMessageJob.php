@@ -16,6 +16,11 @@ class SendDiscordMessageJob extends ServiceJob
         public readonly ?array $embed = null,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'discord-queue';
+    }
+
     public static function senderKeys(): array
     {
         return [

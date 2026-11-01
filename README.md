@@ -8,6 +8,7 @@ Code shared by the OmnifexIT services, so a fix lands everywhere at once instead
 | Sentinel driver that trusts Tailscale's 100.64.0.0/10 range (registered automatically when Horizon/Sentinel is installed) | `Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver` |
 | The jobs services send each other, one class for sender and receiver | `Omnifexit\OmniCore\Jobs\{Mail,Desk,Ai,Message}\*` (base: `Jobs\ServiceJob`) |
 | User and role sync between OmniAuth and its client apps | `Omnifexit\OmniCore\Jobs\Auth\*` (base: `ClientAppJob`) |
+| Checking a service is wired up correctly (handlers, Horizon queues, no local copies) | `Omnifexit\OmniCore\Testing\ServiceContract::problems()` |
 | Writing a job's progress for the sender to poll | `Omnifexit\OmniCore\Queue\DispatchStatus::mark($job->statusKey(), ...)` |
 
 This repo is public on purpose: it holds no secrets. The queue keys live in each service's `.env`.
@@ -46,7 +47,17 @@ both sides, so sender and receiver can't drift apart.
   (`SendWelcomeEmailJob::class => App\JobHandlers\SendWelcomeEmail::class`). The handler's
   `handle(SendWelcomeEmailJob $job)` does the work. Dependencies are injected, and `$job->attempts()` and
   `$job->fail()` work as usual.
-- **A sending service** just dispatches the job, with no handler.
+- **A sending service** just dispatches the job, with no handler. Each job knows its queue:
+  `->onQueue(SendWelcomeEmailJob::queue())`. For the sync jobs the app matters: `SyncRoleChangeJob::queue('omnidesk')`.
+- **Every service** has a contract test that runs `ServiceContract::problems()`. It checks that every handler exists
+  and accepts its job, that Horizon listens on each handled job's queue, and that `app/Jobs` holds no copy of a
+  shared job:
+
+  ```php
+  it('is wired up correctly for omni-core\'s shared jobs', function () {
+      expect(ServiceContract::problems())->toBe([]);
+  });
+  ```
 
 ### Jobs between OmniAuth and its client apps
 
@@ -58,8 +69,8 @@ both sides, so sender and receiver can't drift apart.
 
 ### Adding a job
 
-1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()` and, if the sender polls for the result, a
-   `statusKey()`. Add a test.
+1. Add the class under `src/Jobs/<Receiver>/`, with its `senderKeys()`, its `queue()` and, if the sender polls for
+   the result, a `statusKey()`. Add a test.
 2. Release a minor version.
 3. Update the receiver first: register the handler, deploy.
 4. Then update the sender: dispatch the job.

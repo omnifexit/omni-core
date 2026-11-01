@@ -17,6 +17,11 @@ class RunLocalPromptJob extends ServiceJob
         public readonly ?int $timeout = null,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'ai-prompt-local-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omnidesk' => 'omnidesk-omniai'];

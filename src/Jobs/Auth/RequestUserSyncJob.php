@@ -17,6 +17,11 @@ class RequestUserSyncJob extends ClientAppJob
         public readonly string $dispatchId,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'omni-sync-request';
+    }
+
     public static function sentByOmniAuth(): bool
     {
         return true;

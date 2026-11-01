@@ -17,6 +17,11 @@ class SendContractSigningEmailJob extends ServiceJob
         public readonly string $dispatchId,
     ) {}
 
+    public static function queue(?string $receiver = null): string
+    {
+        return 'contract-signing-queue';
+    }
+
     public static function senderKeys(): array
     {
         return ['omnisales' => 'omnisales-omnimail'];

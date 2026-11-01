@@ -21,6 +21,14 @@ class SyncRoleChangeJob extends ClientAppJob
         public readonly bool $isDeleted = false,
     ) {}
 
+    /**
+     * Each app's own sync queue ($receiver is the app, e.g. omnidesk).
+     */
+    public static function queue(?string $receiver = null): string
+    {
+        return "{$receiver}-sync-queue";
+    }
+
     public static function sentByOmniAuth(): bool
     {
         return true;

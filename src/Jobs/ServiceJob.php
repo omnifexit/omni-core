@@ -27,6 +27,13 @@ abstract class ServiceJob implements ShouldQueue
      */
     abstract public static function senderKeys(): array;
 
+    /**
+     * The queue this job travels on to $receiver (a service name, e.g. omnimail). Senders dispatch with
+     * ->onQueue(TheJob::queue(...)) and the receiving service's Horizon must listen on it; ServiceContract checks
+     * the latter. Most jobs have one receiver, so the argument only matters for jobs that go to several.
+     */
+    abstract public static function queue(?string $receiver = null): string;
+
     public function getEncryptionKey(): string
     {
         $service = config('omni-core.service');
