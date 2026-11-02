@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
-use Omnifexit\OmniCore\Sso\RevokedUsers;
+use Omnifexit\OmniCore\Sso\CacheKeys;
 use Throwable;
 
 class LauncherController
@@ -20,7 +20,7 @@ class LauncherController
             return response()->json(['apps' => [], 'tools' => []]);
         }
 
-        $cacheKey = RevokedUsers::cachePrefix().":launcher:{$user->omniauth_id}";
+        $cacheKey = CacheKeys::launcher($user->omniauth_id);
 
         if (Cache::has($cacheKey)) {
             return response()->json(Cache::get($cacheKey));

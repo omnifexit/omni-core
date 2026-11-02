@@ -15,6 +15,7 @@ use Laravel\Socialite\Two\User as SocialiteUser;
 use Omnifexit\OmniCore\Jobs\Auth\SyncPermissionsJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncRoleChangeJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncUsersJob;
+use Omnifexit\OmniCore\Sso\CacheKeys;
 use Omnifexit\OmniCore\Sso\Http\EnsureUserNotRevoked;
 use Omnifexit\OmniCore\Sso\Http\LauncherController;
 use Omnifexit\OmniCore\Sso\Http\SsoController;
@@ -126,11 +127,12 @@ beforeEach(function () {
 });
 
 it('derives the cache prefix from omni-core.service and lets omni-core.sso.cache_prefix override it', function () {
-    expect(RevokedUsers::cachePrefix())->toBe('desk')
-        ->and(RevokedUsers::key(7))->toBe('desk:revoke_user:7');
+    expect(CacheKeys::prefix())->toBe('desk')
+        ->and(CacheKeys::revokedUser(7))->toBe('desk:revoke_user:7')
+        ->and(CacheKeys::launcher('abc'))->toBe('desk:launcher:abc');
 
     config()->set('omni-core.sso.cache_prefix', 'custom');
-    expect(RevokedUsers::cachePrefix())->toBe('custom');
+    expect(CacheKeys::prefix())->toBe('custom');
 });
 
 it('flags, checks and clears revoked users, and clears the flag on Login', function () {

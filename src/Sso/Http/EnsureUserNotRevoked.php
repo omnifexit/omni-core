@@ -21,7 +21,7 @@ class EnsureUserNotRevoked
         $isRevoked = RevokedUsers::isFlagged($user->id);
         $hasNoRoles = $user->roles()->count() === 0;
 
-        if ($isRevoked || $hasNoRoles || (method_exists($user, 'trashed') && $user->trashed())) {
+        if ($isRevoked || $hasNoRoles || $user->trashed()) {
             if (method_exists($user, 'tokens')) {
                 $user->tokens()->delete();
             }

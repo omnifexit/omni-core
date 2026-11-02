@@ -59,7 +59,7 @@ class SsoController
             'email_verified_at' => now(),
         ]);
 
-        if (method_exists($user, 'trashed') && $user->trashed()) {
+        if ($user->trashed()) {
             $user->restore();
         }
 
