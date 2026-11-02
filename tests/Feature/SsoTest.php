@@ -5,6 +5,7 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
@@ -187,6 +188,29 @@ it('logs the user in on callback, assigns roles for this client, and syncs permi
             && $job->permissions === ['view tickets', 'create tickets']
             && $job->roleAssignments === ['admin' => ['view tickets']];
     });
+});
+
+it('still logs the user in when the permission sync cannot be sent', function () {
+    Exceptions::fake();
+    Queue::shouldReceive('connection')->andThrow(new RuntimeException('Queue unavailable'));
+    config()->set('omni-core.sso.permissions', ['view tickets']);
+
+    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+
+    $socialiteUser = Mockery::mock(SocialiteUser::class);
+    $socialiteUser->shouldReceive('getId')->andReturn('999');
+    $socialiteUser->shouldReceive('getName')->andReturn('Test User');
+    $socialiteUser->shouldReceive('getEmail')->andReturn('test@example.test');
+    $socialiteUser->user = ['roles' => [['name' => 'admin', 'team_id' => 'client-desk']]];
+
+    Socialite::shouldReceive('driver')->with('omniauth')->andReturnSelf();
+    Socialite::shouldReceive('user')->andReturn($socialiteUser);
+
+    $response = $this->get('/sso/callback');
+
+    $response->assertRedirect('https://desk.omnifexit.test');
+    $this->assertAuthenticated();
+    Exceptions::assertReported(RuntimeException::class);
 });
 
 it('denies access on callback when the user has no roles for this client', function () {
