@@ -30,8 +30,9 @@ return [
         // Extra User columns SyncUsers copies from the UserData payload (e.g. ['discord_id']).
         'user_fields' => [],
 
-        // All permission names this app uses (e.g. App\Support\Permissions::ALL). When non-empty,
-        // SsoController dispatches SyncPermissionsJob on login so OmniAuth learns new permissions.
+        // All permission names this app uses (e.g. App\Support\Permissions::ALL). The omni-core:sync-permissions
+        // command sends them to OmniAuth on every deploy. This list decides which permissions exist; OmniAuth decides
+        // which roles have them.
         'permissions' => [],
     ],
 

@@ -125,3 +125,13 @@ class SendInvoiceEmailJob implements ShouldQueue
 To try a change in a service before releasing it, point the service at your local checkout temporarily:
 `composer config repositories.omni-core path ../../OmniCore`, then `composer update omnifexit/omni-core`. Don't
 commit that.
+
+## Permissions
+
+The app's code decides which permissions exist (`App\Support\Permissions::ALL`, set as `omni-core.sso.permissions`).
+OmniAuth decides which roles have them. The app's own database is a read-only copy.
+
+Add `php artisan omni-core:sync-permissions` to the app's post-deploy command, after its migrations. It sends the list
+to OmniAuth, which makes its list match: new names are added and ticked for the `admin` role, names no longer in the
+code are removed from OmniAuth and from every role. The first sync for an app keeps the permissions its roles have
+today. Don't run it as a pre-deploy command: that would send the list of the old code.

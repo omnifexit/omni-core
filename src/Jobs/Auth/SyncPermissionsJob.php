@@ -2,26 +2,19 @@
 
 namespace Omnifexit\OmniCore\Jobs\Auth;
 
-use Illuminate\Contracts\Queue\ShouldBeUnique;
-
 /**
- * A client app's full permission list (and which permissions its roles have), so OmniAuth knows about new
- * permissions. Sent on login.
- *
- * Unique for a few minutes per client, so a burst of logins sends it once. The lock lives in the sending app's cache
- * and OmniAuth can't release it, so it must expire by itself: without uniqueFor it would be held forever.
+ * A client app's full permission list, sent once per deploy by omni-core:sync-permissions. OmniAuth makes its list for
+ * that client match it.
  */
-class SyncPermissionsJob extends ClientAppJob implements ShouldBeUnique
+class SyncPermissionsJob extends ClientAppJob
 {
     public int $backoff = 5;
 
     public int $tries = 3;
 
-    public int $uniqueFor = 300;
-
     /**
      * @param  list<string>  $permissions
-     * @param  array<string, list<string>>  $roleAssignments  Role name => its permission names.
+     * @param  array<string, list<string>>  $roleAssignments  Role name => its permission names. OmniAuth only uses these the first time it sees this client.
      */
     public function __construct(
         public readonly string $clientId,
@@ -42,10 +35,5 @@ class SyncPermissionsJob extends ClientAppJob implements ShouldBeUnique
     public static function sentByClientApps(): bool
     {
         return true;
-    }
-
-    public function uniqueId(): string
-    {
-        return $this->clientId;
     }
 }

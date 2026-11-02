@@ -5,7 +5,6 @@ use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Exceptions;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Route;
@@ -151,12 +150,11 @@ it('redirects to the OmniAuth authorize URL via the registered Socialite driver'
     expect($response->headers->get('Location'))->toContain('https://auth.admin.omnifexit.test/oauth/authorize');
 });
 
-it('logs the user in on callback, assigns roles for this client, and syncs permissions when configured', function () {
+it('logs the user in on callback and assigns roles for this client, without sending anything to the queue', function () {
     Queue::fake();
     config()->set('omni-core.sso.permissions', ['view tickets', 'create tickets']);
 
-    $role = Role::create(['name' => 'admin', 'guard_name' => 'web']);
-    $role->givePermissionTo(Permission::create(['name' => 'view tickets', 'guard_name' => 'web']));
+    Role::create(['name' => 'admin', 'guard_name' => 'web']);
 
     $socialiteUser = Mockery::mock(SocialiteUser::class);
     $socialiteUser->shouldReceive('getId')->andReturn('999');
@@ -183,6 +181,18 @@ it('logs the user in on callback, assigns roles for this client, and syncs permi
         ->and($user->phone_number)->toBe('+31600000000')
         ->and($user->getRoleNames()->all())->toBe(['admin']);
 
+    Queue::assertNothingPushed();
+});
+
+it('sends the permission list and current role permissions to OmniAuth with the sync command', function () {
+    Queue::fake();
+    config()->set('omni-core.sso.permissions', ['view tickets', 'create tickets']);
+
+    $role = Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    $role->givePermissionTo(Permission::create(['name' => 'view tickets', 'guard_name' => 'web']));
+
+    $this->artisan('omni-core:sync-permissions')->assertSuccessful();
+
     Queue::assertPushedOn(SyncPermissionsJob::queueName(), SyncPermissionsJob::class, function (SyncPermissionsJob $job) {
         return $job->clientId === 'client-desk'
             && $job->permissions === ['view tickets', 'create tickets']
@@ -190,28 +200,28 @@ it('logs the user in on callback, assigns roles for this client, and syncs permi
     });
 });
 
-it('still logs the user in when the permission sync cannot be sent', function () {
-    Exceptions::fake();
-    Queue::shouldReceive('connection')->andThrow(new RuntimeException('Queue unavailable'));
+it('sends every run of the sync command, so a second deploy right after the first still counts', function () {
+    Queue::fake();
     config()->set('omni-core.sso.permissions', ['view tickets']);
 
-    Role::create(['name' => 'admin', 'guard_name' => 'web']);
+    $this->artisan('omni-core:sync-permissions')->assertSuccessful();
+    $this->artisan('omni-core:sync-permissions')->assertSuccessful();
 
-    $socialiteUser = Mockery::mock(SocialiteUser::class);
-    $socialiteUser->shouldReceive('getId')->andReturn('999');
-    $socialiteUser->shouldReceive('getName')->andReturn('Test User');
-    $socialiteUser->shouldReceive('getEmail')->andReturn('test@example.test');
-    $socialiteUser->user = ['roles' => [['name' => 'admin', 'team_id' => 'client-desk']]];
-
-    Socialite::shouldReceive('driver')->with('omniauth')->andReturnSelf();
-    Socialite::shouldReceive('user')->andReturn($socialiteUser);
-
-    $response = $this->get('/sso/callback');
-
-    $response->assertRedirect('https://desk.omnifexit.test');
-    $this->assertAuthenticated();
-    Exceptions::assertReported(RuntimeException::class);
+    Queue::assertPushed(SyncPermissionsJob::class, 2);
 });
+
+it('fails the sync command without sending anything when the list or the client is missing', function (array $config) {
+    Queue::fake();
+    config()->set('omni-core.sso.permissions', ['view tickets']);
+    config()->set($config);
+
+    $this->artisan('omni-core:sync-permissions')->assertFailed();
+
+    Queue::assertNothingPushed();
+})->with([
+    'empty list' => [['omni-core.sso.permissions' => []]],
+    'no client' => [['services.omniauth.client_id' => null]],
+]);
 
 it('denies access on callback when the user has no roles for this client', function () {
     $socialiteUser = Mockery::mock(SocialiteUser::class);

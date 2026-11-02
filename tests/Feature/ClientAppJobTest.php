@@ -122,7 +122,3 @@ it('keeps the received key out of the payload', function () {
         ->and(unserialize(serialize($job))->receivedEncryptionKey())->toBe('omniauth-omnidesk')
         ->and($job->statusKey())->toBe('sync:dispatch:d-1');
 });
-
-it('makes the permission sync lock expire by itself', function () {
-    expect((new SyncPermissionsJob(clientId: 'desk-client', permissions: []))->uniqueFor)->toBe(300);
-});

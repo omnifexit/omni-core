@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sentinel\Sentinel;
 use Laravel\Socialite\Facades\Socialite;
+use Omnifexit\OmniCore\Console\SyncPermissionsCommand;
 use Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver;
 use Omnifexit\OmniCore\Sso\OmniAuthProvider;
 use Omnifexit\OmniCore\Sso\RevokedUsers;
@@ -21,6 +22,10 @@ class OmniCoreServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->publishes([__DIR__.'/../config/omni-core.php' => config_path('omni-core.php')], 'omni-core-config');
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([SyncPermissionsCommand::class]);
+        }
 
         // Laravel's Sentinel (pulled in by Horizon) 401s requests proxied in over Tailscale, because
         // it treats the 100.64.0.0/10 CGNAT range as public internet. Only registered when Sentinel

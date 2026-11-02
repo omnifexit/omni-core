@@ -10,10 +10,8 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
-use Omnifexit\OmniCore\Jobs\Auth\SyncPermissionsJob;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
-use Throwable;
 
 class SsoController
 {
@@ -78,8 +76,6 @@ class SsoController
 
         Auth::login($user, true);
 
-        $this->syncPermissions($clientId);
-
         return redirect()->to($frontendUrl);
     }
 
@@ -90,36 +86,5 @@ class SsoController
         $request->session()->regenerateToken();
 
         return response()->noContent();
-    }
-
-    /**
-     * Tells OmniAuth about this app's permissions. A failure here must not block the login: it's reported, and a later
-     * login sends the job again.
-     */
-    private function syncPermissions(string $clientId): void
-    {
-        /** @var list<string> $permissions */
-        $permissions = config('omni-core.sso.permissions', []);
-
-        if ($permissions === [] || $clientId === '') {
-            return;
-        }
-
-        try {
-            $roleAssignments = Role::with('permissions')
-                ->get()
-                ->mapWithKeys(fn (Role $role) => [
-                    $role->name => $role->permissions->pluck('name')->toArray(),
-                ])
-                ->toArray();
-
-            SyncPermissionsJob::dispatch(
-                clientId: $clientId,
-                permissions: $permissions,
-                roleAssignments: $roleAssignments,
-            )->onConnection('redis')->onQueue(SyncPermissionsJob::queueName());
-        } catch (Throwable $e) {
-            report($e);
-        }
     }
 }
