@@ -19,6 +19,24 @@ return [
     'handlers' => [],
 
     /*
+    | Reported exceptions and jobs that failed for good, posted to Discord.
+    */
+
+    'alerts' => [
+        // On in production unless turned off, so local errors and tests don't post anywhere.
+        'enabled' => env('OMNI_ALERTS_ENABLED', env('APP_ENV') === 'production'),
+
+        // The same error posts once per this many minutes.
+        'throttle_minutes' => 10,
+
+        // Used when the queue to OmniMessage is down, and always by services that have no queue to it.
+        'webhooks' => [
+            'errors' => env('DISCORD_WEBHOOK_ERRORS'),
+            'failed-jobs' => env('DISCORD_WEBHOOK_FAILED_JOBS'),
+        ],
+    ],
+
+    /*
     | OmniAuth SSO settings for client apps (OmniDesk, OmniSales, ...).
     */
 

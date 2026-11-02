@@ -135,3 +135,11 @@ Add `php artisan omni-core:sync-permissions` to the app's post-deploy command, a
 to OmniAuth, which makes its list match: new names are added and ticked for the `admin` role, names no longer in the
 code are removed from OmniAuth and from every role. The first sync for an app keeps the permissions its roles have
 today. Don't run it as a pre-deploy command: that would send the list of the old code.
+
+## Error alerts
+
+In production every service posts reported exceptions to Discord's `errors` channel and jobs that failed for good to
+`failed-jobs`. Validation errors, 404s, 401/403s and job attempts that will be retried aren't posted, and the same error
+posts once per 10 minutes. Set `DISCORD_WEBHOOK_ERRORS` and `DISCORD_WEBHOOK_FAILED_JOBS` in every service: OmniAuth,
+OmniDesk and OmniSales use them when the queue to OmniMessage is down, the others always. `OMNI_ALERTS_ENABLED` turns
+alerts on or off. Posts include the exception message, which can contain data like SQL values, so keep the channels private.

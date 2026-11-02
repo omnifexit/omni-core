@@ -3,20 +3,27 @@
 namespace Omnifexit\OmniCore;
 
 use Illuminate\Auth\Events\Login;
+use Illuminate\Contracts\Debug\ExceptionHandler;
+use Illuminate\Queue\Events\JobExceptionOccurred;
+use Illuminate\Queue\Events\JobFailed;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Sentinel\Sentinel;
 use Laravel\Socialite\Facades\Socialite;
+use Omnifexit\OmniCore\Alerts\DiscordAlerts;
 use Omnifexit\OmniCore\Console\SyncPermissionsCommand;
 use Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver;
 use Omnifexit\OmniCore\Sso\OmniAuthProvider;
 use Omnifexit\OmniCore\Sso\RevokedUsers;
+use Throwable;
 
 class OmniCoreServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->mergeConfigFrom(__DIR__.'/../config/omni-core.php', 'omni-core');
+
+        $this->app->singleton(DiscordAlerts::class);
     }
 
     public function boot(): void
@@ -47,6 +54,8 @@ class OmniCoreServiceProvider extends ServiceProvider
             });
         }
 
+        $this->registerAlerts();
+
         Event::listen(Login::class, function (Login $event): void {
             $id = $event->user->getAuthIdentifier();
 
@@ -54,5 +63,20 @@ class OmniCoreServiceProvider extends ServiceProvider
                 RevokedUsers::clear($id);
             }
         });
+    }
+
+    private function registerAlerts(): void
+    {
+        Event::listen(JobExceptionOccurred::class, fn (JobExceptionOccurred $event) => $this->app->make(DiscordAlerts::class)->jobAttemptFailed($event));
+        Event::listen(JobFailed::class, fn (JobFailed $event) => $this->app->make(DiscordAlerts::class)->jobFailed($event));
+
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if (method_exists($handler, 'reportable')) {
+            // Returns nothing on purpose: returning false would stop Laravel from logging the exception.
+            $handler->reportable(function (Throwable $exception): void {
+                $this->app->make(DiscordAlerts::class)->exceptionReported($exception);
+            });
+        }
     }
 }
