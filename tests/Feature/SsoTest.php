@@ -358,3 +358,12 @@ it('ignores a logout about another client or an unknown user', function () {
 
     expect(RevokedUsers::isFlagged($user->id))->toBeFalse();
 });
+
+it('tells OmniAuth who logged out, as their OmniAuth session may have expired', function () {
+    Queue::fake();
+    $user = SsoTestUser::create(['name' => 'Jane', 'email' => 'jane@example.test', 'omniauth_id' => '77']);
+
+    $this->actingAs($user)->post('/logout')->assertNoContent();
+
+    Queue::assertPushedOn('omni-sync-request', LogOutUserJob::class, fn (LogOutUserJob $job) => $job->omniAuthUserId === 77 && $job->clientId === 'client-desk');
+});

@@ -3,7 +3,9 @@
 namespace Omnifexit\OmniCore\Jobs\Auth;
 
 /**
- * A user logged out of the suite. The app ends their sessions, on every device, on their next request.
+ * Both directions of logging out. A client app tells OmniAuth a user logged out, because the user's OmniAuth session
+ * has often expired by then. OmniAuth sends the same job to every app they can reach, which ends their sessions, on
+ * every device, on their next request.
  */
 class LogOutUserJob extends ClientAppJob
 {
@@ -17,11 +19,11 @@ class LogOutUserJob extends ClientAppJob
     ) {}
 
     /**
-     * Each app's own sync queue ($receiver is the app, e.g. omnidesk).
+     * To OmniAuth's shared request queue, or to each app's own sync queue ($receiver is the app, e.g. omnidesk).
      */
     public static function queueName(?string $receiver = null): string
     {
-        return "{$receiver}-sync-queue";
+        return $receiver === null || $receiver === 'omniauth' ? 'omni-sync-request' : "{$receiver}-sync-queue";
     }
 
     public static function sentByOmniAuth(): bool
@@ -31,6 +33,6 @@ class LogOutUserJob extends ClientAppJob
 
     public static function sentByClientApps(): bool
     {
-        return false;
+        return true;
     }
 }

@@ -10,8 +10,10 @@ use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Omnifexit\OmniCore\Jobs\Auth\LogOutUserJob;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpFoundation\RedirectResponse as SymfonyRedirectResponse;
+use Throwable;
 
 class SsoController
 {
@@ -81,10 +83,31 @@ class SsoController
 
     public function logout(Request $request): Response
     {
+        $omniAuthId = Auth::guard('web')->user()?->getAttribute('omniauth_id');
+
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
+        if ($omniAuthId) {
+            $this->tellOmniAuth((int) $omniAuthId);
+        }
+
         return response()->noContent();
+    }
+
+    /**
+     * Their OmniAuth session has often expired by now, as using an app doesn't keep it alive, so the browser can't be
+     * relied on for this. A failure here mustn't stop someone from logging out.
+     */
+    private function tellOmniAuth(int $omniAuthId): void
+    {
+        try {
+            LogOutUserJob::dispatch(config('services.omniauth.client_id'), $omniAuthId)
+                ->onConnection('redis')
+                ->onQueue(LogOutUserJob::queueName());
+        } catch (Throwable $exception) {
+            report($exception);
+        }
     }
 }
