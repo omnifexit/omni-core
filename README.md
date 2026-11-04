@@ -11,6 +11,7 @@ Code shared by the OmnifexIT services, so a fix lands everywhere at once instead
 | OmniAuth SSO login, app launcher, user-revocation middleware, and sync handlers for client apps | `Omnifexit\OmniCore\Sso\*` |
 | Checking a service is wired up correctly (handlers, Horizon queues, no local copies) | `Omnifexit\OmniCore\Testing\ServiceContract::problems()` |
 | Which files can be attached, the message when one isn't allowed, and how a stored file opens safely | `Omnifexit\OmniCore\Uploads\Attachments` |
+| List filters: `me` for whoever is asking, and `active` for anything unfinished | `Omnifexit\OmniCore\Lists\*` |
 | Writing a job's progress for the sender to poll | `Omnifexit\OmniCore\Queue\DispatchStatus::mark($job->statusKey(), ...)` |
 
 This repo is public on purpose: it holds no secrets. The queue keys live in each service's `.env`.

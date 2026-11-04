@@ -24,6 +24,7 @@
         "laravel/sentinel": "Required for the Tailscale-aware Sentinel driver (comes with laravel/horizon).",
         "laravel/socialite": "Required for OmniAuth SSO login (OmniAuthProvider, SsoController).",
         "spatie/laravel-data": "Required for the SyncUsers job handler.",
+        "spatie/laravel-query-builder": "Required for the list filters (PersonFilter, ActiveStatusFilter).",
         "spatie/laravel-permission": "Required for SSO role and permission sync (SsoController, SyncUsers, SyncRoleChange)."
     },
     "autoload": {
