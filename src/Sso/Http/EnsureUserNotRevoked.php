@@ -18,7 +18,8 @@ class EnsureUserNotRevoked
             return $next($request);
         }
 
-        $isRevoked = RevokedUsers::isFlagged($user->id);
+        $loggedInAt = $request->hasSession() ? (int) $request->session()->get(RevokedUsers::SESSION_KEY, 0) : null;
+        $isRevoked = RevokedUsers::isFlagged($user->id, $loggedInAt);
         $hasNoRoles = $user->roles()->count() === 0;
 
         if ($isRevoked || $hasNoRoles || $user->trashed()) {

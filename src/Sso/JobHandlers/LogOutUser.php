@@ -3,6 +3,7 @@
 namespace Omnifexit\OmniCore\Sso\JobHandlers;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Omnifexit\OmniCore\Jobs\Auth\LogOutUserJob;
 use Omnifexit\OmniCore\Sso\RevokedUsers;
 
@@ -22,6 +23,9 @@ class LogOutUser
         $userId = $userModel::where('omniauth_id', $job->omniAuthUserId)->value('id');
 
         if ($userId !== null) {
+            // A "remember me" cookie would start a new session, which the flag doesn't reach.
+            $userModel::whereKey($userId)->update(['remember_token' => Str::random(60)]);
+
             RevokedUsers::flag($userId);
         }
     }

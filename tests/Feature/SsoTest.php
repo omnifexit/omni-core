@@ -138,13 +138,25 @@ it('derives the cache prefix from omni-core.service and lets omni-core.sso.cache
     expect(CacheKeys::prefix())->toBe('custom');
 });
 
-it('flags, checks and clears revoked users, and clears the flag on Login', function () {
+it('only ends sessions older than the flag, so logging back in elsewhere saves nothing', function () {
+    $this->travelTo(now());
     $user = SsoTestUser::create(['name' => 'Jane', 'email' => 'jane@example.test']);
+    $before = now()->getTimestamp();
 
+    $this->travel(10)->seconds();
     RevokedUsers::flag($user->id);
-    expect(RevokedUsers::isFlagged($user->id))->toBeTrue();
 
+    expect(RevokedUsers::isFlagged($user->id))->toBeTrue()
+        ->and(RevokedUsers::isFlagged($user->id, $before))->toBeTrue();
+
+    $this->travel(10)->seconds();
     Auth::login($user);
+
+    expect(session(RevokedUsers::SESSION_KEY))->toBe(now()->getTimestamp())
+        ->and(RevokedUsers::isFlagged($user->id, session(RevokedUsers::SESSION_KEY)))->toBeFalse()
+        ->and(RevokedUsers::isFlagged($user->id, $before))->toBeTrue();
+
+    RevokedUsers::clear($user->id);
     expect(RevokedUsers::isFlagged($user->id))->toBeFalse();
 });
 
@@ -334,7 +346,8 @@ it('logs a user out on their next request when OmniAuth says they logged out', f
 
     (new LogOutUser)->handle(new LogOutUserJob('client-desk', 4242));
 
-    expect(RevokedUsers::isFlagged($user->id))->toBeTrue();
+    expect(RevokedUsers::isFlagged($user->id))->toBeTrue()
+        ->and($user->fresh()->remember_token)->not->toBeNull();
 });
 
 it('ignores a logout about another client or an unknown user', function () {

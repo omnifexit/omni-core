@@ -56,11 +56,9 @@ class OmniCoreServiceProvider extends ServiceProvider
 
         $this->registerAlerts();
 
-        Event::listen(Login::class, function (Login $event): void {
-            $id = $event->user->getAuthIdentifier();
-
-            if ($id !== null) {
-                RevokedUsers::clear($id);
+        Event::listen(Login::class, function (): void {
+            if (app()->bound('session')) {
+                session()->put(RevokedUsers::SESSION_KEY, now()->getTimestamp());
             }
         });
     }
