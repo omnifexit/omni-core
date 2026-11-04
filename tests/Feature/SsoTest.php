@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Socialite\Facades\Socialite;
 use Laravel\Socialite\Two\User as SocialiteUser;
+use Omnifexit\OmniCore\Jobs\Auth\LogOutUserJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncPermissionsJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncRoleChangeJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncUsersJob;
@@ -19,6 +20,7 @@ use Omnifexit\OmniCore\Sso\CacheKeys;
 use Omnifexit\OmniCore\Sso\Http\EnsureUserNotRevoked;
 use Omnifexit\OmniCore\Sso\Http\LauncherController;
 use Omnifexit\OmniCore\Sso\Http\SsoController;
+use Omnifexit\OmniCore\Sso\JobHandlers\LogOutUser;
 use Omnifexit\OmniCore\Sso\JobHandlers\SyncRoleChange;
 use Omnifexit\OmniCore\Sso\JobHandlers\SyncUsers;
 use Omnifexit\OmniCore\Sso\RevokedUsers;
@@ -105,6 +107,7 @@ beforeEach(function () {
     config()->set('omni-core.handlers', [
         SyncUsersJob::class => SyncUsers::class,
         SyncRoleChangeJob::class => SyncRoleChange::class,
+        LogOutUserJob::class => LogOutUser::class,
     ]);
     config()->set('auth.providers.users.model', SsoTestUser::class);
     config()->set('services.omniauth', [
@@ -324,4 +327,21 @@ it('syncs and deletes roles for this client in SyncRoleChange', function () {
     ))->handle(app());
 
     expect(Role::where('name', 'support')->exists())->toBeFalse();
+});
+
+it('logs a user out on their next request when OmniAuth says they logged out', function () {
+    $user = SsoTestUser::forceCreate(['name' => 'Logged Out', 'email' => 'out@example.com', 'omniauth_id' => 4242]);
+
+    (new LogOutUser)->handle(new LogOutUserJob('client-desk', 4242));
+
+    expect(RevokedUsers::isFlagged($user->id))->toBeTrue();
+});
+
+it('ignores a logout about another client or an unknown user', function () {
+    $user = SsoTestUser::forceCreate(['name' => 'Stays', 'email' => 'stays@example.com', 'omniauth_id' => 4343]);
+
+    (new LogOutUser)->handle(new LogOutUserJob('client-sales', 4343));
+    (new LogOutUser)->handle(new LogOutUserJob('client-desk', 9999));
+
+    expect(RevokedUsers::isFlagged($user->id))->toBeFalse();
 });
