@@ -15,6 +15,8 @@ use Omnifexit\OmniCore\Console\SyncPermissionsCommand;
 use Omnifexit\OmniCore\Sentinel\TailscaleAwareSentinelDriver;
 use Omnifexit\OmniCore\Sso\OmniAuthProvider;
 use Omnifexit\OmniCore\Sso\RevokedUsers;
+use Omnifexit\OmniCore\Uploads\Attachments;
+use Spatie\MediaLibrary\MediaCollections\Exceptions\DiskCannotBeAccessed;
 use Throwable;
 
 class OmniCoreServiceProvider extends ServiceProvider
@@ -54,13 +56,28 @@ class OmniCoreServiceProvider extends ServiceProvider
             });
         }
 
+        $this->loadTranslationsFrom(__DIR__.'/../lang', 'omni-core');
+
         $this->registerAlerts();
+        $this->registerUploadErrors();
 
         Event::listen(Login::class, function (): void {
             if (app()->bound('session')) {
                 session()->put(RevokedUsers::SESSION_KEY, now()->getTimestamp());
             }
         });
+    }
+
+    /** A file that can't be stored is reported as usual, but people get a clear message instead of a bare 500. */
+    private function registerUploadErrors(): void
+    {
+        $handler = $this->app->make(ExceptionHandler::class);
+
+        if (method_exists($handler, 'renderable')) {
+            $handler->renderable(function (DiskCannotBeAccessed $exception) {
+                return response()->json(['message' => Attachments::message('storage_failed')], 503);
+            });
+        }
     }
 
     private function registerAlerts(): void
