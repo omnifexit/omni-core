@@ -45,8 +45,13 @@ class DiscordAlerts
     {
         $name = $event->job->resolveName();
 
-        $text = '**'.$this->source()."**: job failed for good: `{$name}` on `{$event->job->getQueue()}`\n"
-            .$this->describeException($event->exception);
+        $text = DiscordText::lines([
+            '⚠️ **Achtergrondtaak definitief mislukt in '.$this->source().'**',
+            "Taak: `{$name}`",
+            "Wachtrij: `{$event->job->getQueue()}`",
+            $this->describeException($event->exception),
+            'Deze taak wordt niet opnieuw geprobeerd.',
+        ]);
 
         // A broken queue path must not alert through that same path.
         $this->send('failed-jobs', $name.$this->fingerprint($event->exception), $text, viaQueue: $name !== SendDiscordMessageJob::class);
@@ -131,19 +136,26 @@ class DiscordAlerts
 
     private function describeError(Throwable $exception): string
     {
-        $where = app()->runningInConsole() || ! app()->bound('request')
-            ? 'console'
-            : '`'.request()->method().' /'.ltrim(request()->path(), '/').'`';
+        $inRequest = ! app()->runningInConsole() && app()->bound('request');
+        $user = $inRequest ? rescue(fn () => request()->user()?->getKey(), null, false) : null;
 
-        return '**'.$this->source()."**: error in {$where}\n".$this->describeException($exception);
+        return DiscordText::lines([
+            '🚨 **Fout in '.$this->source().'**',
+            'Waar: '.($inRequest ? '`'.request()->method().' /'.ltrim(request()->path(), '/').'`' : 'achtergrondproces'),
+            $user ? "Gebruiker: #{$user}" : null,
+            $this->describeException($exception),
+        ]);
     }
 
     private function describeException(Throwable $exception): string
     {
         $file = Str::after($exception->getFile(), base_path().DIRECTORY_SEPARATOR);
 
-        return '`'.$exception::class.'` at `'.$file.':'.$exception->getLine()."`\n"
-            .Str::limit($exception->getMessage(), 1000);
+        return DiscordText::lines([
+            'Type: `'.class_basename($exception).'`',
+            "Bestand: `{$file}:{$exception->getLine()}`",
+            'Melding: '.Str::limit($exception->getMessage(), 1000),
+        ]);
     }
 
     private function source(): string

@@ -191,3 +191,12 @@ it('stays quiet on a retry and posts once the job failed for good, with a real w
         && str_contains($request['content'], 'AlertsTestFailingJob')
         && str_contains($request['content'], 'The job broke'));
 });
+
+it('describes an error in Dutch', function () {
+    Queue::fake();
+
+    report(new RuntimeException('Something broke'));
+
+    Http::assertSent(fn ($request) => str_contains($request['content'], 'Fout in omnimail')
+        && str_contains($request['content'], 'Melding: Something broke'));
+});
