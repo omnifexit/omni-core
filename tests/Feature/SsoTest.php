@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 use Laravel\Sanctum\HasApiTokens;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Omnifexit\OmniCore\Jobs\Auth\LogOutUserJob;
 use Omnifexit\OmniCore\Jobs\Auth\SyncPermissionsJob;
@@ -366,4 +367,11 @@ it('tells OmniAuth who logged out, as their OmniAuth session may have expired', 
     $this->actingAs($user)->post('/logout')->assertNoContent();
 
     Queue::assertPushedOn('omni-sync-request', LogOutUserJob::class, fn (LogOutUserJob $job) => $job->omniAuthUserId === 77 && $job->clientId === 'client-desk');
+});
+
+it('sends someone back to the login page when the login did not finish', function () {
+    Socialite::shouldReceive('driver')->with('omniauth')->andReturnSelf();
+    Socialite::shouldReceive('user')->andThrow(new InvalidStateException);
+
+    $this->get('/sso/callback')->assertRedirectContains('/login?error=login_failed');
 });

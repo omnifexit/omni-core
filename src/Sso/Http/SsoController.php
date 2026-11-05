@@ -2,6 +2,7 @@
 
 namespace Omnifexit\OmniCore\Sso\Http;
 
+use GuzzleHttp\Exception\ClientException;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\RedirectResponse;
@@ -9,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Auth;
 use Laravel\Socialite\Facades\Socialite;
+use Laravel\Socialite\Two\InvalidStateException;
 use Laravel\Socialite\Two\User as SocialiteUser;
 use Omnifexit\OmniCore\Jobs\Auth\LogOutUserJob;
 use Spatie\Permission\Models\Role;
@@ -24,8 +26,13 @@ class SsoController
 
     public function callback(): RedirectResponse
     {
-        /** @var SocialiteUser $omniAuthUser */
-        $omniAuthUser = Socialite::driver('omniauth')->user();
+        try {
+            /** @var SocialiteUser $omniAuthUser */
+            $omniAuthUser = Socialite::driver('omniauth')->user();
+        } catch (InvalidStateException|ClientException) {
+            return $this->loginDidNotFinish();
+        }
+
         /** @var list<array{name: string, team_id?: string|null}> $roles */
         $roles = $omniAuthUser->user['roles'] ?? [];
 
@@ -79,6 +86,17 @@ class SsoController
         Auth::login($user, true);
 
         return redirect()->to($frontendUrl);
+    }
+
+    /**
+     * Happens without anything being wrong: the browser lost the cookie of the session that started the login, like when
+     * a phone opens it in another tab, or someone went back or tapped twice and the one-time code is already used.
+     */
+    private function loginDidNotFinish(): RedirectResponse
+    {
+        $frontendUrl = rtrim((string) config('app.frontend_url'), '/');
+
+        return redirect()->to(Auth::check() ? $frontendUrl : $frontendUrl.'/login?error=login_failed');
     }
 
     public function logout(Request $request): Response
